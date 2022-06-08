@@ -1,7 +1,7 @@
 package mateo.pointcut
 
 import com.sun.net.httpserver.HttpExchange
-import mateo.Diego
+import diego.Diego
 import plsar.model.web.HttpRequest
 import plsar.web.Pointcut
 

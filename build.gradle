@@ -1,10 +1,14 @@
 plugins {
-    id 'java'
     id 'org.jetbrains.kotlin.jvm' version '1.6.20'
+    id("org.jetbrains.dokka") version "1.6.20"
+    id 'maven-publish'
+    id 'java-library'
+    id 'signing'
+    id 'java'
 }
 
 group 'net.plsar'
-version '0.001'
+version '1.000'
 
 repositories {
     mavenCentral()
@@ -13,6 +17,91 @@ dependencies {
     implementation "net.plsar:plsar:0.002"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
+
+def dokkaOutputDir = "$buildDir/dokka"
+
+tasks.named("dokkaHtml") {}
+
+task deleteDokkaOutputDir(type:Delete) {
+    delete(dokkaOutputDir)
+}
+
+task javadocJar(type: Jar) {
+    dependsOn(deleteDokkaOutputDir, tasks.dokkaHtml)
+    archiveClassifier.set("javadoc")
+    from(dokkaOutputDir)
+    with jar
+}
+
+task sourcesJar(type:Jar){
+    dependsOn(JavaPlugin.CLASSES_TASK_NAME)
+    classifier = "sources"
+    from(sourceSets["main"].allSource)
+    artifacts {
+        add("archives", sourcesJar)
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "sonatype"
+            setUrl("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+            credentials {
+                username = ""
+                password = ""
+            }
+        }
+    }
+
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = "net.plsar"
+            artifactId = "diego"
+            version = "1.000"
+            from(components["kotlin"])
+        }
+        maven(MavenPublication) {
+            artifact(javadocJar)
+            artifact(sourcesJar)
+            pom {
+                name.set("plsar")
+                description.set("A Kotlin Authentication & Authorization Framework for PLSAR")
+                url.set("http://github.com/mcroteau/diego")
+                licenses {
+                    license {
+                        name.set("MIT license")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+                issueManagement {
+                    system.set("Github")
+                    url.set("https://github.com/mcroteau/diego/issues")
+                }
+                scm {
+                    connection.set("https://github.com/mcroteau/diego.git")
+                    url.set("https://github.com/mcroteau/diego")
+                }
+                developers {
+                    developer {
+                        name.set("Mike Croteau")
+                        email.set("croteau.mike@gmail.com")
+                    }
+                }
+            }
+        }
+    }
+}
+
+signing {
+    useInMemoryPgpKeys(
+        "",
+        ""
+    )
+    sign(publishing.publications)
+}
+
+
 compileKotlin {
     kotlinOptions {
         jvmTarget = "1.8"
